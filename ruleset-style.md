@@ -21,8 +21,18 @@ which subdomains are covered.
 If you know all subdomains of a given domain support HTTPS, go ahead and use a
 left-wildcard, along with a plain rewrite from `"^http:"` to `"^https:"`. Make sure
 to add a bunch of test URLs for the more important subdomains. If you're not
-sure what subdomains might exist, you can iteratively use google queries and enumerate
-the list of results like such:
+sure what subdomains might exist, you can install the `Sublist3r` tool:
+
+    git clone https://github.com/aboul3la/Sublist3r.git
+    cd Sublist3r
+    sudo pip install -r requirements.txt # or use virtualenv...
+
+Then you can to enumerate the list of subdomains:
+
+    python sublist3r.py -d example.com -e Baidu,Yahoo,Google,Bing,Ask,Netcraft,Virustotal,SSL
+
+Alternatively, you can iteratively use Google queries and enumerate the list of
+results like such:
 
 1. site:*.eff.org
 2. site:*.eff.org -site:www.eff.org
@@ -47,12 +57,19 @@ Prefer dashes over underscores in filenames. Dashes are easier to type.
 Use tabs and double quotes (`"`, not `'`).
 
 When matching an arbitrary DNS label (a single component of a hostname), prefer
-`([\w-]+)` for a single label (i.e www), or `([\w.-]+)` for multiple labels
+`([\w-]+)` for a single label (i.e. www), or `([\w.-]+)` for multiple labels
 (i.e. www.beta). Avoid more visually complicated options like `([^/:@\.]+\.)?`.
 
-For `securecookie` tags, it's common to match any cookie name. For these, prefer
-`.+` over `.*`. They are functionally equivalent, but it's nice to be
-consistent.
+For `securecookie` tags, if you know that all cookies on the included targets
+can be secured (which in particular means that the cookies are not used by any
+of its non-securable subdomains), use the trivial
+
+```xml
+<securecookie host=".+" name=".+" />
+```
+
+where we prefer `.+` over `.*` and `.`. They are functionally equivalent, but
+it's nice to be consistent.
 
 Avoid the negative lookahead operator `?!`. This is almost always better
 expressed using positive rule tags and negative exclusion tags. Some rulesets
@@ -73,7 +90,7 @@ amount necessary to ensure a secure connection.
 
 Here is an example ruleset pre-style guidelines:
 
-```
+```xml
 <ruleset name="WHATWG.org">
   <target host='whatwg.org' />
   <target host="*.whatwg.org" />
@@ -86,7 +103,7 @@ Here is an example ruleset pre-style guidelines:
 Here is how you could rewrite it according to these style guidelines, including
 test URLs:
 
-```
+```xml
 <ruleset name="WHATWG.org">
 	<target host="whatwg.org" />
 	<target host="developers.whatwg.org" />
