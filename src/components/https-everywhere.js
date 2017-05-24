@@ -555,7 +555,7 @@ HTTPSEverywhere.prototype = {
 
         // this pref gets set to false and then true during FF 26 startup!
         // so do nothing if we're being notified during startup
-        if (!this.browser_initialised)
+        if (!this.browser_initialised && data != "extensions.https_everywhere.globalEnabled")
             return;
         switch (data) {
             case "extensions.https_everywhere.globalEnabled":
