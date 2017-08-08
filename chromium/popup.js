@@ -65,8 +65,8 @@ function appendRuleLineToListDiv(ruleset, list_div) {
   var favicon = document.createElement("img");
   favicon.className = "favicon";
   favicon.src = "chrome://favicon/";
-  for (var i=0; i < ruleset.rules.length; i++) {
-    var host = hostReg.exec(ruleset.rules[i].to);
+  for (let rule of ruleset.rules) {
+    var host = hostReg.exec(rule.to);
     if (host) {
       favicon.src += host[0];
       break;
@@ -191,16 +191,6 @@ document.addEventListener("DOMContentLoaded", function () {
       httpNowhereCheckbox.setAttribute('checked', '');
     }
   });
-
-  // auto-translate all elements with i18n attributes
-  var elem = document.querySelectorAll("[i18n]");
-  for (var i=0; i < elem.length; i++) {
-    elem[i].innerHTML = chrome.i18n.getMessage(elem[i].getAttribute("i18n"));
-  }
-
-  // other translations
-  e("aboutTitle").setAttribute("title", chrome.i18n.getMessage("about_title"));
-  e("add-rule-link").addEventListener("click", addManualRule);
 });
 
 
@@ -277,13 +267,4 @@ function setOption_(opt, value) {
   var details = {};
   details[opt] = value;
   sendMessage("set_option", details);
-}
-
-function sendMessage(type, object, callback) {
-  var packet = {};
-  packet.type = type;
-  if(object){
-    packet.object = object;
-  }
-  chrome.runtime.sendMessage(packet, callback);
 }
