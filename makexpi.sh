@@ -130,6 +130,28 @@ rsync -aL --delete --delete-excluded --exclude /chrome/content/rules src/ pkg/xp
 # cp -a translations/* pkg/xpi-cliqz/chrome/locale/
 rsync -a --delete pkg/xpi-cliqz/ pkg/xpi-amo
 
+# START CLIQZ: The next lines are for embedded WebExtensions, and can be deleted after the full transition to WebExtensions
+[ -d pkg/xpi-eff/webextension ] || mkdir pkg/xpi-cliqz/webextension
+rsync -aL --delete chromium/ pkg/xpi-cliqz/webextension/
+
+mkdir pkg/xpi-cliqz/webextension/_locales/
+python2.7 utils/chromium-translations.py translations/ pkg/xpi-cliqz/webextension/_locales/
+python2.7 utils/chromium-translations.py src/chrome/locale/ pkg/xpi-cliqz/webextension/_locales/
+
+cd pkg/xpi-cliqz/webextension
+do_not_ship="*.py *.xml icon.jpg"
+rm -f $do_not_ship
+cd ../../..
+
+rm -rf pkg/xpi-cliqz/chrome/content/rulesets.json
+rm -rf pkg/xpi-cliqz/chrome/locale
+
+mkdir pkg/xpi-cliqz/webextension/rules/
+. ./utils/merge-rulesets.sh || exit 1
+
+cp src/$RULESETS pkg/xpi-cliqz/webextension/rules/default.rulesets
+# END CLIQZ
+
 # The AMO version of the package cannot contain the updateKey or updateURL tags.
 # Also, it has a different id than the eff-hosted version, because Firefox now
 # requires us to upload the eff-hosted version to an unlisted extension on AMO
