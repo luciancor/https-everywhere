@@ -18,7 +18,7 @@ if type apt-get >/dev/null ; then
     CHROMEDRIVER="chromedriver"
   fi
   # In Debian, `python-` is assumed to be python 2.7, no need to specify - dkg
-  $SUDO_SHIM apt-get install libxml2-dev libxml2-utils libxslt1-dev \
+  $SUDO_SHIM apt-get install -y libxml2-dev libxml2-utils libxslt1-dev \
     python-dev $BROWSERS zip sqlite3 python-pip libcurl4-openssl-dev xvfb \
     libssl-dev git curl $CHROMEDRIVER
   if ! type geckodriver >/dev/null; then
