@@ -593,6 +593,14 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
   }
 });
 
+var port = browser.runtime.connect({name: "connection-to-legacy"});
+
+port.onMessage.addListener(function(message) {
+  if (message.type == "toggle_enabled_state") {
+    storage.set({ globalEnabled: message.value });
+  }
+});
+
 // Send a message to the embedded webextension bootstrap.js to get settings to import
 chrome.runtime.sendMessage("import-legacy-data", import_settings);
 

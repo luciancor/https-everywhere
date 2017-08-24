@@ -10,6 +10,27 @@ function get_prefs(branch_name){
   return o_branch;
 }
 
+function handle_enable_toggle(port){
+  var PREF_NAME = "extensions.https_everywhere.globalEnabled",
+      p = port,
+      pref_service = Components.classes["@mozilla.org/preferences-service;1"]
+        .getService(Components.interfaces.nsIPrefBranchInternal),
+      branch = pref_service.QueryInterface(Components.interfaces.nsIPrefBranchInternal);
+
+  function observe(subject, topic, data) {
+    p.postMessage({
+      type: "toggle_enabled_state",
+      value: branch.getBoolPref(PREF_NAME)
+    });
+  }
+
+  if(branch.getPrefType(PREF_NAME) === 0) {
+    branch.setBoolPref(PREF_NAME, true);
+  }
+
+  branch.addObserver(PREF_NAME, { observe:observe }, false);
+}
+
 function get_custom_rulesets_array(){
   var loc = "ProfD";  // profile directory
   var dir =
@@ -58,6 +79,11 @@ function get_custom_rulesets_array(){
 function startup({webExtension}) {
   webExtension.startup().then(api => {
     const {browser} = api;
+
+    browser.runtime.onConnect.addListener((port) => {
+      handle_enable_toggle(port);
+    });
+
     browser.runtime.onMessage.addListener((msg, sender, sendReply) => {
       if (msg == "import-legacy-data") {
         let globals = get_prefs("extensions.https_everywhere.");
