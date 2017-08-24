@@ -149,6 +149,7 @@ var updateState = function() {
     } else if (applied) {
       iconState = "active";
     }
+    /*
     chrome.browserAction.setIcon({
       path: {
         "38": "icons/icon-" + iconState + "-38.png"
@@ -157,6 +158,7 @@ var updateState = function() {
     chrome.browserAction.setTitle({
       title: "HTTPS Everywhere (" + iconState + ")"
     });
+    */
   });
 }
 
