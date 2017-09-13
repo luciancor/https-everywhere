@@ -9,7 +9,7 @@
 	ᶜ See https://owasp.org/index.php/SecureFlag
 
 -->
-<ruleset name="adition.com">
+<ruleset name="adition.com" default_off='breaks spiegel.de'>
 
 	<target host="adition.com" />
 	<target host="*.adition.com" />
@@ -21,7 +21,7 @@
 		<test url="http://en.adition.com/" />
 		<test url="http://imagesrv.adition.com/js/adition.js" />
 		<test url="http://www.adition.com/" />
-	
+
 
 	<!--	Not secured by server:
 					-->
