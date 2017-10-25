@@ -5,39 +5,48 @@ const CC = Components.classes;
 
 function get_prefs(branch_name){
   let o_prefs = CC["@mozilla.org/preferences-service;1"]
-                      .getService(CI.nsIPrefService);
+    .getService(CI.nsIPrefService);
   let o_branch = o_prefs.getBranch(branch_name);
   return o_branch;
 }
 
-function handle_enable_toggle(port){
-  var PREF_NAME = "extensions.https_everywhere.globalEnabled",
-      p = port,
-      pref_service = Components.classes["@mozilla.org/preferences-service;1"]
-        .getService(Components.interfaces.nsIPrefBranchInternal),
-      branch = pref_service.QueryInterface(Components.interfaces.nsIPrefBranchInternal);
 
-  function observe(subject, topic, data) {
-    p.postMessage({
-      type: "toggle_enabled_state",
-      value: branch.getBoolPref(PREF_NAME)
-    });
+var PREF_NAME = "extensions.https_everywhere.globalEnabled",
+    pref_service = Components.classes["@mozilla.org/preferences-service;1"]
+        .getService(Components.interfaces.nsIPrefBranchInternal),
+    branch = pref_service.QueryInterface(Components.interfaces.nsIPrefBranchInternal),
+    observer;
+
+function handle_enable_toggle(port){
+  observer = {
+    observe: (function(p) {
+      return function observe(subject, topic, data) {
+        p.postMessage({
+          type: "toggle_enabled_state",
+          value: branch.getBoolPref(PREF_NAME)
+        });
+      }
+    })(port)
   }
 
   if(branch.getPrefType(PREF_NAME) === 0) {
     branch.setBoolPref(PREF_NAME, true);
   }
 
-  branch.addObserver(PREF_NAME, { observe:observe }, false);
+  branch.addObserver(PREF_NAME, observer, false);
+}
+
+function removePrefObserver(){
+  branch.removeObserver(PREF_NAME, observer);
 }
 
 function get_custom_rulesets_array(){
   var loc = "ProfD";  // profile directory
   var dir =
     CC["@mozilla.org/file/directory_service;1"]
-    .getService(CI.nsIProperties)
-    .get(loc, CI.nsILocalFile)
-    .clone();
+      .getService(CI.nsIProperties)
+      .get(loc, CI.nsILocalFile)
+      .clone();
   dir.append("HTTPSEverywhereUserRules");
   // Check for existence, if not, create.
   if (!dir.exists()) {
@@ -56,9 +65,9 @@ function get_custom_rulesets_array(){
   for(let file of files){
     var data = "";
     var fstream = CC["@mozilla.org/network/file-input-stream;1"]
-        .createInstance(CI.nsIFileInputStream);
+      .createInstance(CI.nsIFileInputStream);
     var sstream = CC["@mozilla.org/scriptableinputstream;1"]
-        .createInstance(CI.nsIScriptableInputStream);
+      .createInstance(CI.nsIScriptableInputStream);
     fstream.init(file, -1, 0, 0);
     sstream.init(fstream);
 
@@ -141,4 +150,5 @@ function pref_retrieve_bool_with_default(pref_branch, element, default_value){
 }
 
 function shutdown(data) {
+  removePrefObserver();
 }
