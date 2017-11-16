@@ -168,12 +168,14 @@ function updateState () {
 /**
  * The following allows fennec to interact with the popup ui
  * */
+ /*
 chrome.browserAction.onClicked.addListener(e => {
   const url = chrome.extension.getURL("popup.html?tabId=" + e.id);
   chrome.tabs.create({
     url
   });
 });
+*/
 
 /**
  * Adds a listener for removed tabs
