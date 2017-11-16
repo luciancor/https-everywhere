@@ -20,7 +20,7 @@ function setup_firefox {
     sudo tar -xvf /tmp/geckodriver.tar.gz -C /usr/local/bin/
     sudo chmod a+x /usr/local/bin/geckodriver
 
-    # ./makexpi.sh requires xmllint
+    # ./make.sh requires xmllint
     sudo apt-get -qq update
     sudo apt-get install -y libxml2-utils
 }
@@ -61,8 +61,10 @@ case $INFO in
   *unittests*)
     setup_unittests
     ;;
-  *rules*|*fetch*|*preloaded*)
+  *rules*|*fetch*)
     setup_docker
+    ;;
+  *preloaded*)
     ;;
   *)
     echo "bad INFO variable, got $INFO"

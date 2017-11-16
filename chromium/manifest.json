@@ -16,6 +16,13 @@
             "background.js"
         ]
     },
+    "browser_action": {
+        "default_icon": {
+            "38": "icons/icon-active-38.png"
+        },
+        "default_popup": "popup.html",
+        "default_title": "__MSG_about_ext_name__"
+    },
     "default_locale": "en",
     "description": "__MSG_about_ext_description__",
     "devtools_page": "devtools.html",
@@ -40,5 +47,5 @@
         "storage",
         "*://*/*"
     ],
-    "version": "2017.10.24"
+    "version": "2017.10.30"
 }
