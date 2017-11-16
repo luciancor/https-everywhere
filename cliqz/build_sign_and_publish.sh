@@ -18,7 +18,7 @@ echo "CLIQZ: clobber"
 rm -rf pkg
 
 echo "CLIQZ: build"
-./makexpi.sh
+./make.sh
 
 XPI_NAME=`ls pkg/*-cliqz.xpi | head -1 | xargs basename`
 VERSION=`echo $XPI_NAME | grep -E -o '[0-9]+\.[0-9]+\.[0-9]+'`

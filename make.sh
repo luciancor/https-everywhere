@@ -39,6 +39,7 @@ echo "Building version" $VERSION
 [ -e pkg/crx ] && rm -rf pkg/crx
 [ -e pkg/xpi-amo ] && rm -rf pkg/xpi-amo
 [ -e pkg/xpi-eff ] && rm -rf pkg/xpi-eff
+[ -e pkg/xpi-eff ] && rm -rf pkg/xpi-cliqz # cliqz
 
 # Clean up obsolete ruleset databases, just in case they still exist.
 rm -f src/chrome/content/rules/default.rulesets src/defaults/rulesets.sqlite
@@ -65,13 +66,18 @@ sed -i -e "s/VERSION/$VERSION/g" pkg/crx/manifest.json
 
 cp -a pkg/crx pkg/xpi-amo
 cp -a pkg/crx pkg/xpi-eff
+cp -a pkg/crx pkg/xpi-cliqz # cliqz
 cp -a src/META-INF pkg/xpi-amo
 cp -a src/META-INF pkg/xpi-eff
+cp -a src/META-INF pkg/xpi-cliqz # cliqz
 
 # Remove the 'applications' manifest key from the crx version of the extension and change the 'author' string to a hash
 python2.7 -c "import json; m=json.loads(open('pkg/crx/manifest.json').read()); e=m['author']; m['author']={'email': e}; del m['applications']; open('pkg/crx/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
 # Remove the 'update_url' manifest key from the xpi version of the extension delivered to AMO
 python2.7 -c "import json; m=json.loads(open('pkg/xpi-amo/manifest.json').read()); del m['applications']['gecko']['update_url']; m['applications']['gecko']['id'] = 'https-everywhere@eff.org'; open('pkg/xpi-amo/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
+# Remove the 'update_url' manifest key from the xpi version of the extension delivered to Cliqz
+python2.7 -c "import json; m=json.loads(open('pkg/xpi-cliqz/manifest.json').read()); del m['applications']['gecko']['update_url']; m['applications']['gecko']['id'] = 'https-everywhere@cliqz.com'; open('pkg/xpi-cliqz/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
+
 
 # If the --remove-update-channel flag is set, ensure the extension is unable to update
 if [ "$1" == "--remove-update-channel" -o "$2" == "--remove-update-channel" ]; then
@@ -84,11 +90,13 @@ if [ -n "$BRANCH" ] ; then
   crx="pkg/https-everywhere-$VERSION.crx"
   xpi_amo="pkg/https-everywhere-$VERSION-amo.xpi"
   xpi_eff="pkg/https-everywhere-$VERSION-eff.xpi"
+  xpi_cliqz="pkg/https-everywhere-$VERSION-cliqz.xpi"
   key=../dummy-chromium.pem
 else
   crx="pkg/https-everywhere-$VERSION~pre.crx"
   xpi_amo="pkg/https-everywhere-$VERSION~pre-amo.xpi"
   xpi_eff="pkg/https-everywhere-$VERSION~pre-eff.xpi"
+  xpi_cliqz="pkg/https-everywhere-$VERSION~pre-cliqz.xpi"
   key=dummy-chromium.pem
 fi
 if ! [ -f "$key" ] ; then
@@ -166,6 +174,18 @@ cp $zip $xpi_eff
 
 
 
+# now zip up the xpi CLIQZ dir
+name=pkg/xpi-cliqz
+dir=pkg/xpi-cliqz
+zip="$name.zip"
+
+cwd=$(pwd -P)
+(cd "$dir" && ../../utils/create_xpi.py -n "$cwd/$zip" -x "../../.build_exclusions" .)
+echo >&2 "CLIQZ xpi package has sha1sum: `sha1sum "$cwd/$zip"`"
+
+cp $zip $xpi_cliqz
+
+
 bash utils/android-push.sh "$xpi_eff"
 
 #rm -rf pkg/crx
@@ -185,6 +205,7 @@ echo >&2 "Rules disabled by default: `find src/chrome/content/rules -name "*.xml
 # see test/selenium/shim.py
 echo "Created $xpi_amo"
 echo "Created $xpi_eff"
+echo "Created $xpi_cliqz"
 echo "Created $crx"
 
 if [ -n "$BRANCH" ]; then
@@ -192,5 +213,6 @@ if [ -n "$BRANCH" ]; then
   cp $SUBDIR/$crx pkg
   cp $SUBDIR/$xpi_amo pkg
   cp $SUBDIR/$xpi_eff pkg
+  cp $SUBDIR/$xpi_cliqz pkg
   rm -rf $SUBDIR
 fi

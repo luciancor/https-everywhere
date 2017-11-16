@@ -44,7 +44,7 @@ function initializeStoredGlobals(){
     }, function(item) {
       httpNowhereOn = item.httpNowhere;
       showCounter = item.showCounter;
-      isExtensionEnabled = item.globalEnabled;
+      // isExtensionEnabled = item.globalEnabled; // always on in Cliqz
       updateState();
 
       rules.settings.enableMixedRulesets = item.enableMixedRulesets;
@@ -65,7 +65,7 @@ chrome.storage.onChanged.addListener(async function(changes, areaName) {
       updateState();
     }
     if ('globalEnabled' in changes) {
-      isExtensionEnabled = changes.globalEnabled.newValue;
+      // isExtensionEnabled = changes.globalEnabled.newValue; //always on in Cliqz
       updateState();
     }
     if ('debugging_rulesets' in changes) {
@@ -602,15 +602,6 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
   }
 });
 
-var port = chrome.runtime.connect({name: "connection-to-legacy"});
-
-port.onMessage.addListener(function(message) {
-  if (message.type == "toggle_enabled_state") {
-    store.set({ globalEnabled: message.value });
-  }
-});
-
-
 /**
  * Import extension settings (custom rulesets, ruleset toggles, globals) from an object
  * @param settings the settings object
@@ -629,7 +620,7 @@ async function import_settings(settings) {
         legacy_custom_rulesets: settings.custom_rulesets,
         httpNowhere: settings.prefs.http_nowhere_enabled,
         showCounter: settings.prefs.show_counter,
-        globalEnabled: settings.prefs.global_enabled,
+        // globalEnabled: settings.prefs.global_enabled, // always on in Cliqz
         ruleActiveStates
       }, resolve);
     });
