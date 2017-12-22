@@ -17,12 +17,12 @@ node {
 
     withCredentials([
         usernamePassword(
-            credentialsId: balrogCredentialsID, 
-            passwordVariable: 'BALROG_PASSWORD', 
+            credentialsId: balrogCredentialsID,
+            passwordVariable: 'BALROG_PASSWORD',
             usernameVariable: 'BALROG_ADMIN')]) {
 
             docker.image(imgName).inside("-u 0:0") {
-              sh './install-dev-dependencies.sh'
+              sh './install-dev-dependencies.sh --no-prompt'
               sh '/bin/bash ./cliqz/build_sign_and_publish.sh '+CLIQZ_CHANNEL
             }
     }
