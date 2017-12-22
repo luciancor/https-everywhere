@@ -1,10 +1,9 @@
 <!--
 	Other EFF rulesets:
 		- Freerangekitten.com.xml
-		- I_Fight_Surveillance.org.xml
-		- JailbreakingIsNotACrime.org.xml
-		- Manila_Principles.org.xml
-		- Necessary_and_Proportionate.org.xml
+		- IFightSurveillance.org.xml
+		- ManilaPrinciples.org.xml
+		- NecessaryAndProportionate.org.xml
 		- Panopticlick.com.xml
 		- TrollingEffects.org.xml
 -->
@@ -12,7 +11,6 @@
 <ruleset name="EFF">
 	<target host="httpsnow.org" />
 	<target host="www.httpsnow.org" />
-	<target host="ripmixmake.org" />
 
 	<securecookie host=".+" name=".+" />
 

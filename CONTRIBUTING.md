@@ -1,3 +1,39 @@
+# Table of Contents
+
+* [Welcome!](#welcome)
+    * [HTTPS Everywhere Source Code Layout](#https-everywhere-source-code-layout)
+    * [Submitting Changes](#submitting-changes)
+* [Contributing Rulesets](#contributing-rulesets)
+    * [General Info](#general-info)
+    * [New Rulesets](#new-rulesets)
+    * [Minimum Requirements for a Ruleset PR](#minimum-requirements-for-a-ruleset-pr)
+    * [Testing](#testing)
+    * [Ruleset Style Guide](#ruleset-style-guide)
+        * [Motivation](#motivation)
+        * [Indentation &amp; Misc Stylistic Conventions](#indentation--misc-stylistic-conventions)
+        * [Wildcards in Targets](#wildcards-in-targets)
+            * [Left-Wildcards](#left-wildcards)
+            * [Edge-Case: Right-Wildcards](#edge-case-right-wildcards)
+        * [Complicated Regex in Rules](#complicated-regex-in-rules)
+        * [Enumerating Subdomains](#enumerating-subdomains)
+        * [Target Ordering](#target-ordering)
+        * [Rule Ordering](#rule-ordering)
+        * [Non-working hosts](#non-working-hosts)
+        * [Ruleset Names](#ruleset-names)
+            * [Filenames](#filenames)
+        * [Cross-referencing Rulesets](#cross-referencing-rulesets)
+        * [Regex Conventions](#regex-conventions)
+        * [Snapping Redirects](#snapping-redirects)
+        * [Example: Ruleset before style guidelines are applied](#example-ruleset-before-style-guidelines-are-applied)
+        * [Example: Ruleset after style guidelines are applied, with test URLs](#example-ruleset-after-style-guidelines-are-applied-with-test-urls)
+    * [Removal of Rules](#removal-of-rules)
+        * [Regular Rules](#regular-rules)
+        * [HSTS Preloaded Rules](#hsts-preloaded-rules)
+* [Contributing Code](#contributing-code)
+* [Contributing Translations](#contributing-translations)
+
+* * *
+
 # Welcome!
 
 Welcome, and thank you for your interest in contributing to HTTPS Everywhere! HTTPS Everywhere depends on the open source community for its continued success, so any contribution is appreciated.
@@ -108,7 +144,7 @@ Use double quotes (`"`, not `'`).
 
 #### Left-Wildcards
 
-Avoid using the left-wildcard (`<target host='*.example.com' />`) unless you intend to rewrite all or nearly all subdomains.  If it can be demonstrated that there is comprehensive HTTPS coverage for subdomains, left-wildcards may be appropriate.  Many rules today specify a left-wildcard target, but the rewrite rules only rewrite an explicit list of hostnames.
+Avoid using the left-wildcard (`<target host="*.example.com" />`) unless you intend to rewrite all or nearly all subdomains.  If it can be demonstrated that there is comprehensive HTTPS coverage for subdomains, left-wildcards may be appropriate.  Many rules today specify a left-wildcard target, but the rewrite rules only rewrite an explicit list of hostnames.
 
 Instead, prefer listing explicit target hosts and a single rewrite from `"^http:"` to `"^https:"`. This saves you time as a ruleset author because each explicit target host automatically creates an implicit test URL, reducing the need to add your own test URLs. These also make it easier for someone reading the ruleset to figure out which subdomains are covered.
 
@@ -116,7 +152,7 @@ If you know all subdomains of a given domain support HTTPS, go ahead and use a l
 
 #### Edge-Case: Right-Wildcards
 
-Right-wildcards (`<target host='account.google.*' />`) are highly discouraged.  Only use them in edge-cases where other solutions are unruly.
+Right-wildcards (`<target host="account.google.*" />`) are highly discouraged.  Only use them in edge-cases where other solutions are unruly.
 
 Example:
 
@@ -312,7 +348,7 @@ Officially supported browsers:
 - Firefox ESR
 - Chromium Stable
 
-We also informally support Opera browser, but do not have tooling around testing Opera.  Firefox ESR is supported because this is what the Tor Browser, which includes HTTPS Everywhere, is built upon.  For the test commands, refer to [README.md](README.md).
+We also informally support Opera browser, but do not have tooling around testing Opera.  Firefox ESR is supported because this is what the [Tor Browser](https://www.torproject.org/projects/torbrowser.html.en), which includes HTTPS Everywhere, is built upon.  For the test commands, refer to [README.md](README.md).
 
 The current extension maintainer is @Hainish.  You can tag him for PRs which involve the core codebase.
 

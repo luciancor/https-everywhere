@@ -16,9 +16,6 @@ async function initialize() {
   await initializeStoredGlobals();
   await all_rules.loadFromBrowserStorage(store);
   await incognito.onIncognitoDestruction(destroy_caches);
-
-  // Send a message to the embedded webextension bootstrap.js to get settings to import
-  chrome.runtime.sendMessage("import-legacy-data", import_settings);
 }
 initialize();
 
@@ -169,6 +166,16 @@ function updateState () {
 }
 
 /**
+ * The following allows fennec to interact with the popup ui
+ * */
+chrome.browserAction.onClicked.addListener(e => {
+  const url = chrome.extension.getURL("popup.html?tabId=" + e.id);
+  chrome.tabs.create({
+    url
+  });
+});
+
+/**
  * Adds a listener for removed tabs
  * */
 function AppliedRulesets() {
@@ -224,29 +231,27 @@ function onBeforeRequest(details) {
     return;
   }
 
-  const uri = new URL(details.url);
+  let uri = new URL(details.url);
 
-  // Should the request be canceled?
-  var shouldCancel = (
-    httpNowhereOn &&
-    uri.protocol === 'http:' &&
-    !/\.onion$/.test(uri.hostname) &&
-    !/^localhost$/.test(uri.hostname) &&
-    !/^127(\.[0-9]{1,3}){3}$/.test(uri.hostname) &&
-    !/^0\.0\.0\.0$/.test(uri.hostname)
-  );
-
-  // Normalise hosts such as "www.example.com."
-  var canonical_host = uri.hostname;
-  if (canonical_host.charAt(canonical_host.length - 1) == ".") {
-    while (canonical_host.charAt(canonical_host.length - 1) == ".")
-      canonical_host = canonical_host.slice(0,-1);
+  // Normalise hosts with tailing dots, e.g. "www.example.com."
+  let canonical_host = uri.hostname;
+  while (canonical_host.charAt(canonical_host.length - 1) == ".") {
+    canonical_host = canonical_host.slice(0, -1);
     uri.hostname = canonical_host;
   }
 
+  // Should the request be canceled?
+  const shouldCancel = httpNowhereOn &&
+    uri.protocol === 'http:' &&
+    uri.hostname.slice(-6) !== '.onion' &&
+    uri.hostname !== 'localhost' &&
+    !/^127(\.[0-9]{1,3}){3}$/.test(canonical_host) &&
+    !/^0\.0\.0\.0$/.test(canonical_host) &&
+    uri.hostname !== '[::1]';
+
   // If there is a username / password, put them aside during the ruleset
   // analysis process
-  var using_credentials_in_url = false;
+  let using_credentials_in_url = false;
   let tmp_user;
   let tmp_pass;
   if (uri.password || uri.username) {
@@ -270,14 +275,13 @@ function onBeforeRequest(details) {
     activeRulesets.removeTab(details.tabId);
   }
 
-  var potentiallyApplicable = all_rules.potentiallyApplicableRulesets(uri.hostname);
+  var potentiallyApplicable = all_rules.potentiallyApplicableRulesets(canonical_host);
 
   if (redirectCounter.get(details.requestId) >= 8) {
     util.log(util.NOTE, "Redirect counter hit for " + canonical_url);
     urlBlacklist.add(canonical_url);
-    var hostname = uri.hostname;
-    rules.settings.domainBlacklist.add(hostname);
-    util.log(util.WARN, "Domain blacklisted " + hostname);
+    rules.settings.domainBlacklist.add(canonical_host);
+    util.log(util.WARN, "Domain blacklisted " + canonical_host);
     return {cancel: shouldCancel};
   }
 
@@ -341,15 +345,10 @@ function onBeforeRequest(details) {
 
 // Map of which values for the `type' enum denote active vs passive content.
 // https://developer.chrome.com/extensions/webRequest.html#event-onBeforeRequest
-var activeTypes = { stylesheet: 1, script: 1, object: 1, other: 1};
-
-// We consider sub_frame to be passive even though it can contain JS or flash.
-// This is because code running in the sub_frame cannot access the main frame's
-// content, by same-origin policy. This is true even if the sub_frame is on the
-// same domain but different protocol - i.e. HTTP while the parent is HTTPS -
-// because same-origin policy includes the protocol. This also mimics Chrome's
-// UI treatment of insecure subframes.
-var passiveTypes = { main_frame: 1, sub_frame: 1, image: 1, xmlhttprequest: 1};
+const mixedContentTypes = {
+  object: 1, other: 1, script: 1, stylesheet: 1, sub_frame: 1, xmlhttprequest: 1,
+  image: 0, main_frame: 0
+};
 
 /**
  * Record a non-HTTPS URL loaded by a given hostname in the Switch Planner, for
@@ -363,18 +362,13 @@ var passiveTypes = { main_frame: 1, sub_frame: 1, image: 1, xmlhttprequest: 1};
  * @param rewritten_url: The url rewritten to
  * */
 function writeToSwitchPlanner(type, tab_id, resource_host, resource_url, rewritten_url) {
-  var rw = "rw";
-  if (rewritten_url == null)
-    rw = "nrw";
+  let rw = rewritten_url ? "rw" : "nrw";
 
-  var active_content = 0;
-  if (activeTypes[type]) {
-    active_content = 1;
-  } else if (passiveTypes[type]) {
-    active_content = 0;
+  let active_content = 1;
+  if (mixedContentTypes.hasOwnProperty(type)) {
+    active_content = mixedContentTypes[type];
   } else {
     util.log(util.WARN, "Unknown type from onBeforeRequest details: `" + type + "', assuming active");
-    active_content = 1;
   }
 
   if (!switchPlannerInfo[tab_id]) {
@@ -644,7 +638,9 @@ function destroy_caches() {
 
 Object.assign(exports, {
   all_rules,
-  urlBlacklist
+  urlBlacklist,
+  sortSwitchPlanner,
+  switchPlannerInfo
 });
 
 })(typeof exports == 'undefined' ? require.scopes.background = {} : exports);

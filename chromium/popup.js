@@ -4,7 +4,6 @@
 
 var stableRules = null;
 var unstableRules = null;
-var hostReg = /.*\/\/[^$/]*\//;
 
 function e(id) {
   return document.getElementById(id);
@@ -52,33 +51,11 @@ function appendRuleLineToListDiv(ruleset, list_div, tab_id) {
   // checkbox
   var checkbox = document.createElement("input");
   checkbox.type = "checkbox";
-  if (ruleset.active) {
-    checkbox.setAttribute("checked", "");
-  }
+  checkbox.checked = ruleset.active;
   checkbox.onchange = function() {
     toggleRuleLine(checkbox, ruleset, tab_id);
   };
   label.appendChild(checkbox);
-
-  // favicon (from chrome's cache)
-  var favicon = document.createElement("img");
-  favicon.className = "favicon";
-  favicon.src = "chrome://favicon/";
-  for (let rule of ruleset.rules) {
-    var host = hostReg.exec(rule.to);
-    if (host) {
-      favicon.src += host[0];
-      break;
-    }
-  }
-
-  if (false) { //navigator.userAgent.match("Chrome")) {
-    var xhr = new XMLHttpRequest();
-    try {
-      xhr.open("GET", favicon.src, true);
-      label.appendChild(favicon);
-    } catch (e) {}
-  }
 
   // label text
   var text = document.createElement("span");
@@ -158,8 +135,7 @@ function gotTab(activeTab) {
         listDiv = unstableRules;
       }
       appendRuleLineToListDiv(rulesets[r], listDiv, activeTab.id);
-      listDiv.style.position = "static";
-      listDiv.style.visibility = "visible";
+      listDiv.style.display = 'block';
     }
     // Only show the "Add a rule" link if we're on an HTTPS page
     if (/^https:/.test(activeTab.url)) {
