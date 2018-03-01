@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+set -x
 
 ADDON_ID=https-everywhere@cliqz.com
 CHANNEL=$1

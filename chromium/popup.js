@@ -89,7 +89,7 @@ function showHttpNowhereUI() {
     if (item.httpNowhere) {
       e('http-nowhere-checkbox').checked = true;
     }
-    show(e('HttpNowhere'));
+    e('HttpNowhere').style.visibility = "visible";
   });
 };
 
@@ -97,7 +97,7 @@ function showHttpNowhereUI() {
 function updateEnabledDisabledUI() {
   getOption_('globalEnabled', true, function(item) {
     document.getElementById('onoffswitch').checked = item.globalEnabled;
-    show(e('disableButton'));
+    e('disableButton').style.visibility = "visible";
     // Hide or show the rules sections
     if (item.globalEnabled) {
       document.body.className = ""
@@ -128,15 +128,19 @@ function toggleEnabledDisabled() {
  * @param tabArray
  */
 function gotTab(activeTab) {
-  sendMessage("get_active_rulesets", activeTab.id, function(rulesets){
-    for (var r in rulesets) {
-      var listDiv = stableRules;
-      if (!rulesets[r].default_state) {
-        listDiv = unstableRules;
+  sendMessage("get_active_rulesets", activeTab.id, function(rulesets) {
+    if (rulesets) {
+      for (const ruleset of rulesets) {
+        let listDiv = stableRules;
+
+        if (!ruleset.default_state) {
+          listDiv = unstableRules;
+        }
+        appendRuleLineToListDiv(ruleset, listDiv, activeTab.id);
+        listDiv.style.display = 'block';
       }
-      appendRuleLineToListDiv(rulesets[r], listDiv, activeTab.id);
-      listDiv.style.display = 'block';
     }
+
     // Only show the "Add a rule" link if we're on an HTTPS page
     if (/^https:/.test(activeTab.url)) {
       show(e("add-rule-link"));

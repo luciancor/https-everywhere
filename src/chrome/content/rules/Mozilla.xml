@@ -9,7 +9,6 @@
 		- BadgeKit.org.xml
 		- Bugzilla.xml
 		- Firefox.com.xml
-		- GetPersonas.xml
 		- Lizard_Wrangler.com.xml
 		- Makes.org.xml
 		- Mozilla.com.xml
@@ -18,14 +17,11 @@
 		- Mozilla.net.xml
 		- Mozilla-Community.org.xml
 		- Mozilla_Demos.org.xml
-		- Mozilla_Ignite.org.xml
 		- Mozilla_Messaging.com.xml
 		- Mozilla_Webmaker.xml
-		- Mozillians.org.xml
 		- Moztw.org.xml
 		- mzl.la (via Bitly_branded_short_domains.xml)
 		- Open_Badges.xml
-		- Public_Suffix.org.xml
 		- Searchfox.org.xml
 		- TaskCluster.net
 		- TogetherJS.com.xml
@@ -226,9 +222,9 @@
 
 				https://mail1.eff.org/pipermail/https-everywhere-rules/2013-June/001635.html
 													-->
-		<exclusion pattern="^http://(europe|bonsai|browserquest|trychooser\.pub\.build|bzr|(?!image)\w+\.e|graphs|iot|mig|release|sfx-images|symbolapi|symbols|alerts\.telemetry|w(ebsite|ww)-archive)\.mozilla\.org/" />
+		<exclusion pattern="^http://(europe|browserquest|trychooser\.pub\.build|bzr|(?!image)\w+\.e|graphs|iot|mig|release|sfx-images|symbolapi|symbols|alerts\.telemetry|w(ebsite|ww)-archive)\.mozilla\.org/" />
 
-			<test url="http://bonsai.mozilla.org/" />
+			<test url="http://europe.mozilla.org/" />
 			<test url="http://browserquest.mozilla.org/" />
 			<test url="http://bzr.mozilla.org/" />
 			<test url="http://trychooser.pub.build.mozilla.org/" />
@@ -249,7 +245,6 @@
 		<test url="http://advocacy.mozilla.org/" />
 		<test url="http://air.mozilla.org/" />
 		<test url="http://archive.mozilla.org/" />
-		<test url="http://bonsai.mozilla.org/" />
 		<test url="http://bugzilla.mozilla.org/" />
 		<test url="http://careers.mozilla.org/" />
 		<test url="http://developer.mozilla.org/" />

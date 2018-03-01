@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:17.10
 
 # general build deps
 RUN apt-get update && apt-get install -y \
@@ -39,7 +39,8 @@ RUN apt-get install -y \
   xvfb \
   libssl-dev \
   git \
-  chromium-chromedriver
+  chromium-chromedriver \
+  rsync
 
 RUN pip install \
   lxml>=3.3.3 \

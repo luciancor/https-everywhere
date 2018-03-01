@@ -19,6 +19,12 @@ async function initialize() {
 }
 initialize();
 
+async function initializeAllRules() {
+  const r = new rules.RuleSets();
+  await r.loadFromBrowserStorage(store);
+  Object.assign(all_rules, r);
+}
+
 /**
  * Load preferences. Structure is:
  *  {
@@ -66,9 +72,7 @@ chrome.storage.onChanged.addListener(async function(changes, areaName) {
       updateState();
     }
     if ('debugging_rulesets' in changes) {
-      const r = new rules.RuleSets();
-      await r.loadFromBrowserStorage(store);
-      Object.assign(all_rules, r);
+      initializeAllRules();
     }
   }
 });
@@ -95,25 +99,6 @@ var switchPlannerEnabledFor = {};
 //   switchPlannerInfo[tabId]["rw"/"nrw"][resource_host][active_content][url];
 // rw / nrw stand for "rewritten" versus "not rewritten"
 var switchPlannerInfo = {};
-
-function getActiveRulesetCount(id) {
-  const applied = activeRulesets.getRulesets(id);
-
-  if (!applied)
-  {
-    return 0;
-  }
-
-  let activeCount = 0;
-
-  for (const key in applied) {
-    if (applied[key].active) {
-      activeCount++;
-    }
-  }
-
-  return activeCount;
-}
 
 /**
  * Set the icon color correctly
@@ -144,14 +129,13 @@ function updateState () {
   chrome.browserAction.setTitle({
     title: 'HTTPS Everywhere' + ((iconState === 'active') ? '' : ' (' + iconState + ')')
   });
-*/
   chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
     if (!tabs || tabs.length === 0) {
       return;
     }
     const tabId = tabs[0].id;
-    const activeCount = getActiveRulesetCount(tabId);
-/*
+    const activeCount = appliedRulesets.getActiveRulesetCount(tabId);
+
     if ('setBadgeBackgroundColor' in chrome.browserAction) {
       chrome.browserAction.setBadgeBackgroundColor({ color: '#666666', tabId });
     }
@@ -161,8 +145,8 @@ function updateState () {
     if ('setBadgeText' in chrome.browserAction) {
       chrome.browserAction.setBadgeText({ text: showBadge ? String(activeCount) : '', tabId });
     }
-*/
   });
+*/
 }
 
 /**
@@ -177,13 +161,16 @@ chrome.browserAction.onClicked.addListener(e => {
 });
 */
 
-/**
- * Adds a listener for removed tabs
- * */
-function AppliedRulesets() {
-  this.active_tab_rules = {};
 
-  var that = this;
+
+/**
+ * Add a listener for removed tabs
+ */
+function AppliedRulesets() {
+  this.active_tab_rules = new Map();
+  this.active_tab_main_frames = new Map();
+
+  let that = this;
   if (chrome.tabs) {
     chrome.tabs.onRemoved.addListener(function(tabId) {
       that.removeTab(tabId);
@@ -192,29 +179,70 @@ function AppliedRulesets() {
 }
 
 AppliedRulesets.prototype = {
-  addRulesetToTab: function(tabId, ruleset) {
-    if (tabId in this.active_tab_rules) {
-      this.active_tab_rules[tabId][ruleset.name] = ruleset;
+  addRulesetToTab: function(tabId, type, ruleset) {
+    if (!this.active_tab_main_frames.has(tabId)) {
+      this.active_tab_main_frames.set(tabId, false);
+    }
+
+    // always show main_frame ruleset on the top
+    if (type == "main_frame") {
+      this.active_tab_main_frames.set(tabId, true);
+      this.active_tab_rules.set(tabId, [ruleset,]);
+      return ;
+    }
+
+    if (this.active_tab_rules.has(tabId)) {
+      let rulesets = this.active_tab_rules.get(tabId);
+      let insertIndex = 0;
+
+      const ruleset_name = ruleset.name.toLowerCase();
+
+      for (const item of rulesets) {
+        const item_name = item.name.toLowerCase();
+
+        if (item_name == ruleset_name) {
+          return ;
+        } else if (insertIndex == 0 && this.active_tab_main_frames.get(tabId)) {
+          insertIndex = 1;
+        } else if (item_name < ruleset_name) {
+          insertIndex++;
+        }
+      }
+      rulesets.splice(insertIndex, 0, ruleset);
     } else {
-      this.active_tab_rules[tabId] = {};
-      this.active_tab_rules[tabId][ruleset.name] = ruleset;
+      this.active_tab_rules.set(tabId, [ruleset,]);
     }
   },
 
   getRulesets: function(tabId) {
-    if (tabId in this.active_tab_rules) {
-      return this.active_tab_rules[tabId];
+    if (this.active_tab_rules.has(tabId)) {
+      return this.active_tab_rules.get(tabId);
+    } else {
+      return null;
     }
-    return null;
   },
 
   removeTab: function(tabId) {
-    delete this.active_tab_rules[tabId];
+    this.active_tab_rules.delete(tabId);
+    this.active_tab_main_frames.delete(tabId);
+  },
+
+  getActiveRulesetCount: function (tabId) {
+    let activeCount = 0;
+
+    const rulesets = this.getRulesets(tabId);
+    if (rulesets) {
+      for (const ruleset of rulesets) {
+        if (ruleset.active) {
+          activeCount++;
+        }
+      }
+    }
+    return activeCount;
   }
 };
 
-// FIXME: change this name
-var activeRulesets = new AppliedRulesets();
+var appliedRulesets = new AppliedRulesets();
 
 var urlBlacklist = new Set();
 
@@ -274,7 +302,7 @@ function onBeforeRequest(details) {
   }
 
   if (details.type == "main_frame") {
-    activeRulesets.removeTab(details.tabId);
+    appliedRulesets.removeTab(details.tabId);
   }
 
   var potentiallyApplicable = all_rules.potentiallyApplicableRulesets(canonical_host);
@@ -290,7 +318,7 @@ function onBeforeRequest(details) {
   var newuristr = null;
 
   for (let ruleset of potentiallyApplicable) {
-    activeRulesets.addRulesetToTab(details.tabId, ruleset);
+    appliedRulesets.addRulesetToTab(details.tabId, details.type, ruleset);
     if (ruleset.active && !newuristr) {
       newuristr = ruleset.apply(canonical_url);
     }
@@ -496,10 +524,47 @@ function onErrorOccurred(details) {
   }
 }
 
+/**
+ * handle webrequest.onHeadersReceived, insert upgrade-insecure-requests directive
+ * @param details details for the chrome.webRequest (see chrome doc)
+ */
+function onHeadersReceived(details) {
+  if (isExtensionEnabled && httpNowhereOn) {
+    // Do not upgrade the .onion requests in HTTP Nowhere Mode,
+    // See https://github.com/EFForg/https-everywhere/pull/14600#discussion_r168072480
+    const uri = new URL(details.url);
+    if (uri.hostname.slice(-6) == '.onion') {
+      return {};
+    }
+
+    for (const idx in details.responseHeaders) {
+      if (details.responseHeaders[idx].name.match(/Content-Security-Policy/i)) {
+        // Existing CSP headers found
+        const value = details.responseHeaders[idx].value;
+
+        // Prepend if no upgrade-insecure-requests directive exists
+        if (!value.match(/upgrade-insecure-requests/i)) {
+          details.responseHeaders[idx].value = "upgrade-insecure-requests; " + value;
+          return {responseHeaders: details.responseHeaders};
+        }
+        return {};
+      }
+    }
+
+    // CSP headers not found
+    const upgradeInsecureRequests = {
+      name: 'Content-Security-Policy',
+      value: 'upgrade-insecure-requests'
+    }
+    details.responseHeaders.push(upgradeInsecureRequests);
+    return {responseHeaders: details.responseHeaders};
+  }
+  return {};
+}
+
 // Registers the handler for requests
 // See: https://github.com/EFForg/https-everywhere/issues/10039
 chrome.webRequest.onBeforeRequest.addListener(onBeforeRequest, {urls: ["*://*/*"]}, ["blocking"]);
-
 
 // Try to catch redirect loops on URLs we've redirected to HTTPS.
 chrome.webRequest.onBeforeRedirect.addListener(onBeforeRedirect, {urls: ["https://*/*"]});
@@ -510,8 +575,12 @@ chrome.webRequest.onCompleted.addListener(onCompleted, {urls: ["*://*/*"]});
 // Cleanup redirectCounter if neccessary
 chrome.webRequest.onErrorOccurred.addListener(onErrorOccurred, {urls: ["*://*/*"]})
 
+// Insert upgrade-insecure-requests directive in httpNowhere mode
+chrome.webRequest.onHeadersReceived.addListener(onHeadersReceived, {urls: ["https://*/*"]}, ["blocking", "responseHeaders"]);
+
 // Listen for cookies set/updated and secure them if applicable. This function is async/nonblocking.
 chrome.cookies.onChanged.addListener(onCookieChanged);
+
 
 /**
  * disable switch Planner
@@ -572,13 +641,20 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
   } else if (message.type == "delete_from_ruleset_cache") {
     all_rules.ruleCache.delete(message.object);
   } else if (message.type == "get_active_rulesets") {
-    sendResponse(activeRulesets.getRulesets(message.object));
+    sendResponse(appliedRulesets.getRulesets(message.object));
   } else if (message.type == "set_ruleset_active_status") {
-    var ruleset = activeRulesets.getRulesets(message.object.tab_id)[message.object.name];
-    ruleset.active = message.object.active;
-    if (ruleset.default_state == message.object.active) {
-      message.object.active = undefined;
+    let rulesets = appliedRulesets.getRulesets(message.object.tab_id);
+
+    for (let ruleset of rulesets) {
+      if (ruleset.name == message.object.name) {
+        ruleset.active = message.object.active;
+        if (ruleset.default_state == message.object.active) {
+          message.object.active = undefined;
+        }
+        break;
+      }
     }
+
     all_rules.setRuleActiveState(message.object.name, message.object.active).then(() => {
       sendResponse(true);
     });
@@ -621,9 +697,7 @@ async function import_settings(settings) {
       }, resolve);
     });
 
-    Object.assign(all_rules, new rules.RuleSets());
-    await all_rules.loadFromBrowserStorage(store);
-
+    initializeAllRules();
   }
 }
 

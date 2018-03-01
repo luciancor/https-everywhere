@@ -34,20 +34,19 @@ if type apt-get >/dev/null ; then
     BROWSERS="iceweasel chromium"
     CHROMEDRIVER="chromedriver"
   fi
-  # In Debian, `python-` is assumed to be python 2.7, no need to specify - dkg
   $SUDO_SHIM apt-get install -y libxml2-dev libxml2-utils libxslt1-dev \
-    python-dev $BROWSERS zip sqlite3 python-pip libcurl4-openssl-dev xvfb \
+    python3.6-dev $BROWSERS zip sqlite3 python3-pip libcurl4-openssl-dev xvfb \
     libssl-dev git curl $CHROMEDRIVER
   if ! type geckodriver >/dev/null; then
-    curl -LO "https://github.com/mozilla/geckodriver/releases/download/v0.16.1/geckodriver-v0.16.1-linux64.tar.gz"
-    tar -zxvf "geckodriver-v0.16.1-linux64.tar.gz"
-    rm -f "geckodriver-v0.16.1-linux64.tar.gz"
+    curl -LO "https://github.com/mozilla/geckodriver/releases/download/v0.17.0/geckodriver-v0.17.0-linux64.tar.gz"
+    tar -zxvf "geckodriver-v0.17.0-linux64.tar.gz"
+    rm -f "geckodriver-v0.17.0-linux64.tar.gz"
     $SUDO_SHIM mv geckodriver /usr/bin/geckodriver
     $SUDO_SHIM chown root /usr/bin/geckodriver
     $SUDO_SHIM chmod 755 /usr/bin/geckodriver
   fi
   if [ ! -f /usr/lib/chromium/chromedriver ] && [ -f `which chromedriver` ]; then
-    ln -s `which chromedriver` /usr/lib/chromium/chromedriver
+    ln -s `which chromedriver` /usr/lib/chromium/chromedriver -f
   fi
 elif type brew >/dev/null ; then
   brew list python &>/dev/null || brew install python
@@ -73,9 +72,9 @@ elif type dnf >/dev/null ; then
     $SUDO_SHIM chmod 755 /usr/bin/chromedriver
   fi
   if ! type geckodriver >/dev/null; then
-    curl -LO "https://github.com/mozilla/geckodriver/releases/download/v0.16.1/geckodriver-v0.16.1-macos.tar.gz"
-    tar -zxvf "geckodriver-v0.16.1-macos.tar.gz"
-    rm -f "geckodriver-v0.16.1-macos.tar.gz"
+    curl -LO "https://github.com/mozilla/geckodriver/releases/download/v0.17.0/geckodriver-v0.17.0-macos.tar.gz"
+    tar -zxvf "geckodriver-v0.17.0-macos.tar.gz"
+    rm -f "geckodriver-v0.17.0-macos.tar.gz"
     $SUDO_SHIM mv geckodriver /usr/bin/geckodriver
     $SUDO_SHIM chown root /usr/bin/geckodriver
     $SUDO_SHIM chmod 755 /usr/bin/geckodriver
@@ -93,12 +92,12 @@ git submodule init
 git submodule update
 
 # Install Python packages
-pip install --user --no-allow-insecure --no-allow-external -r requirements.txt
+pip3 install --user --no-allow-insecure --no-allow-external -r requirements.txt
 cd test/rules
-pip install --user -r requirements.txt
+pip3 install --user -r requirements.txt
 cd -
 cd test/chromium
-pip install --user -r requirements.txt
+pip3 install --user -r requirements.txt
 cd -
 
 # Install git hook to run tests before pushing.

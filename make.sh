@@ -31,7 +31,7 @@ if [ -n "$1" -a "$1" != "--remove-update-channel" ]; then
   git submodule update --recursive -f
 fi
 
-VERSION=`python2.7 -c "import json ; print(json.loads(open('chromium/manifest.json').read())['version'])"`
+VERSION=`python3.6 -c "import json ; print(json.loads(open('chromium/manifest.json').read())['version'])"`
 
 echo "Building version" $VERSION
 
@@ -52,15 +52,15 @@ rsync -aL ../../chromium/ ./
 # Turn the Firefox translations into the appropriate Chrome format:
 rm -rf _locales/
 mkdir _locales/
-python2.7 ../../utils/chromium-translations.py ../../translations/ _locales/
-python2.7 ../../utils/chromium-translations.py ../../src/chrome/locale/ _locales/
+python3.6 ../../utils/chromium-translations.py ../../translations/ _locales/
+python3.6 ../../utils/chromium-translations.py ../../src/chrome/locale/ _locales/
 do_not_ship="*.py *.xml"
 rm -f $do_not_ship
 cd ../..
 
-. ./utils/merge-rulesets.sh || exit 1
+python3.6 ./utils/merge-rulesets.py || exit 1
 
-cp src/$RULESETS pkg/crx/rules/default.rulesets
+cp src/chrome/content/rules/default.rulesets pkg/crx/rules/default.rulesets
 
 sed -i -e "s/VERSION/$VERSION/g" pkg/crx/manifest.json
 
@@ -71,19 +71,20 @@ cp -a src/META-INF pkg/xpi-amo
 cp -a src/META-INF pkg/xpi-eff
 cp -a src/META-INF pkg/xpi-cliqz # cliqz
 
-# Remove the 'applications' manifest key from the crx version of the extension and change the 'author' string to a hash
-python2.7 -c "import json; m=json.loads(open('pkg/crx/manifest.json').read()); m['author']={'email': 'eff.software.projects@gmail.com'}; del m['applications']; open('pkg/crx/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
+# Remove the 'applications' manifest key from the crx version of the extension, change the 'author' string to a hash, and add the "update_url" manifest key
+# "update_url" needs to be present to avoid problems reported in https://bugs.chromium.org/p/chromium/issues/detail?id=805755
+python3.6 -c "import json; m=json.loads(open('pkg/crx/manifest.json').read()); m['author']={'email': 'eff.software.projects@gmail.com'}; del m['applications']; m['update_url'] = 'https://clients2.google.com/service/update2/crx'; open('pkg/crx/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
 # Remove the 'update_url' manifest key from the xpi version of the extension delivered to AMO
-python2.7 -c "import json; m=json.loads(open('pkg/xpi-amo/manifest.json').read()); del m['applications']['gecko']['update_url']; m['applications']['gecko']['id'] = 'https-everywhere@eff.org'; open('pkg/xpi-amo/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
+python3.6 -c "import json; m=json.loads(open('pkg/xpi-amo/manifest.json').read()); del m['applications']['gecko']['update_url']; m['applications']['gecko']['id'] = 'https-everywhere@eff.org'; open('pkg/xpi-amo/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
 # Remove the 'update_url' manifest key from the xpi version of the extension delivered to Cliqz
-python2.7 -c "import json; m=json.loads(open('pkg/xpi-cliqz/manifest.json').read()); del m['applications']['gecko']['update_url']; m['applications']['gecko']['id'] = 'https-everywhere@cliqz.com'; open('pkg/xpi-cliqz/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
-
+python3.6 -c "import json; m=json.loads(open('pkg/xpi-cliqz/manifest.json').read()); del m['applications']['gecko']['update_url']; m['applications']['gecko']['id'] = 'https-everywhere@cliqz.com'; open('pkg/xpi-cliqz/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
 
 # If the --remove-update-channel flag is set, ensure the extension is unable to update
 if [ "$1" == "--remove-update-channel" -o "$2" == "--remove-update-channel" ]; then
   echo "Flag --remove-update-channel specified.  Removing the XPI extensions' ability to update."
-  python2.7 -c "import json; m=json.loads(open('pkg/xpi-amo/manifest.json').read()); m['applications']['gecko']['update_url'] = 'data:text/plain,'; open('pkg/xpi-amo/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
-  python2.7 -c "import json; m=json.loads(open('pkg/xpi-eff/manifest.json').read()); m['applications']['gecko']['update_url'] = 'data:text/plain,'; open('pkg/xpi-eff/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
+  python3.6 -c "import json; m=json.loads(open('pkg/xpi-amo/manifest.json').read()); m['applications']['gecko']['update_url'] = 'data:text/plain,'; open('pkg/xpi-amo/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
+  python3.6 -c "import json; m=json.loads(open('pkg/xpi-eff/manifest.json').read()); m['applications']['gecko']['update_url'] = 'data:text/plain,'; open('pkg/xpi-eff/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
+  python3.6 -c "import json; m=json.loads(open('pkg/xpi-cliqz/manifest.json').read()); m['applications']['gecko']['update_url'] = 'data:text/plain,'; open('pkg/xpi-cliqz/manifest.json','w').write(json.dumps(m,indent=4,sort_keys=True))"
 fi
 
 if [ -n "$BRANCH" ] ; then
@@ -116,7 +117,8 @@ trap 'rm -f "$pub" "$sig" "$zip"' EXIT
 
 # zip up the crx dir
 cwd=$(pwd -P)
-(cd "$dir" && ../../utils/create_xpi.py -n "$cwd/$zip" -x "../../.build_exclusions" .)
+(cd "$dir" && ../../utils/create_zip.py -n "$cwd/$zip" -x "../../.build_exclusions" .)
+echo >&2 "CWS crx package has sha1sum: `sha1sum "$cwd/$zip"`"
 
 # signature
 openssl sha1 -sha1 -binary -sign "$key" < "$zip" > "$sig"
@@ -154,7 +156,7 @@ dir=pkg/xpi-amo
 zip="$name.zip"
 
 cwd=$(pwd -P)
-(cd "$dir" && ../../utils/create_xpi.py -n "$cwd/$zip" -x "../../.build_exclusions" .)
+(cd "$dir" && ../../utils/create_zip.py -n "$cwd/$zip" -x "../../.build_exclusions" .)
 echo >&2 "AMO xpi package has sha1sum: `sha1sum "$cwd/$zip"`"
 
 cp $zip $xpi_amo
@@ -167,7 +169,7 @@ dir=pkg/xpi-eff
 zip="$name.zip"
 
 cwd=$(pwd -P)
-(cd "$dir" && ../../utils/create_xpi.py -n "$cwd/$zip" -x "../../.build_exclusions" .)
+(cd "$dir" && ../../utils/create_zip.py -n "$cwd/$zip" -x "../../.build_exclusions" .)
 echo >&2 "EFF xpi package has sha1sum: `sha1sum "$cwd/$zip"`"
 
 cp $zip $xpi_eff
@@ -180,23 +182,13 @@ dir=pkg/xpi-cliqz
 zip="$name.zip"
 
 cwd=$(pwd -P)
-(cd "$dir" && ../../utils/create_xpi.py -n "$cwd/$zip" -x "../../.build_exclusions" .)
+(cd "$dir" && ../../utils/create_zip.py -n "$cwd/$zip" -x "../../.build_exclusions" .)
 echo >&2 "CLIQZ xpi package has sha1sum: `sha1sum "$cwd/$zip"`"
 
 cp $zip $xpi_cliqz
 
 
 bash utils/android-push.sh "$xpi_eff"
-
-#rm -rf pkg/crx
-
-#python2.7 githubhelper.py $VERSION
-
-#git add chromium/updates.xml
-#git commit -m "release $VERSION"
-#git tag -s chrome-$VERSION -m "release $VERSION"
-#git push
-#git push --tags
 
 echo >&2 "Total included rules: `find src/chrome/content/rules -name "*.xml" | wc -l`"
 echo >&2 "Rules disabled by default: `find src/chrome/content/rules -name "*.xml" | xargs grep -F default_off | wc -l`"
