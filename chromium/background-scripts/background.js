@@ -5,7 +5,8 @@
 const rules = require('./rules'),
   store = require('./store'),
   incognito = require('./incognito'),
-  util = require('./util');
+  util = require('./util'),
+  update = require('./update');
 
 
 let all_rules = new rules.RuleSets();
@@ -14,14 +15,15 @@ async function initialize() {
   await store.initialize();
   await store.performMigrations();
   await initializeStoredGlobals();
-  await all_rules.loadFromBrowserStorage(store);
+  await update.initialize(store, initializeAllRules);
+  await all_rules.loadFromBrowserStorage(store, update.applyStoredRulesets);
   await incognito.onIncognitoDestruction(destroy_caches);
 }
 initialize();
 
 async function initializeAllRules() {
   const r = new rules.RuleSets();
-  await r.loadFromBrowserStorage(store);
+  await r.loadFromBrowserStorage(store, update.applyStoredRulesets);
   Object.assign(all_rules, r);
 }
 
@@ -70,6 +72,11 @@ chrome.storage.onChanged.addListener(async function(changes, areaName) {
     if ('globalEnabled' in changes) {
       // isExtensionEnabled = changes.globalEnabled.newValue; //always on in Cliqz
       updateState();
+    }
+    if ('enableMixedRulesets' in changes) {
+      // Don't require users to restart the browsers
+      rules.settings.enableMixedRulesets = changes.enableMixedRulesets.newValue;
+      initializeAllRules();
     }
     if ('debugging_rulesets' in changes) {
       initializeAllRules();
@@ -457,17 +464,29 @@ function sortSwitchPlanner(tab_id, rewritten) {
 function onCookieChanged(changeInfo) {
   if (!changeInfo.removed && !changeInfo.cookie.secure && isExtensionEnabled) {
     if (all_rules.shouldSecureCookie(changeInfo.cookie)) {
-      var cookie = {name:changeInfo.cookie.name,
+      let cookie = {
+        name:changeInfo.cookie.name,
         value:changeInfo.cookie.value,
         path:changeInfo.cookie.path,
         httpOnly:changeInfo.cookie.httpOnly,
         expirationDate:changeInfo.cookie.expirationDate,
         storeId:changeInfo.cookie.storeId,
-        secure: true};
+        secure: true
+      };
 
       // Host-only cookies don't set the domain field.
       if (!changeInfo.cookie.hostOnly) {
         cookie.domain = changeInfo.cookie.domain;
+      }
+
+      // Chromium cookie sameSite status, see https://tools.ietf.org/html/draft-west-first-party-cookies
+      if (changeInfo.cookie.sameSite) {
+        cookie.sameSite = changeInfo.cookie.sameSite;
+      }
+
+      // Firefox first-party isolation
+      if (changeInfo.cookie.firstPartyDomain) {
+        cookie.firstPartyDomain = changeInfo.cookie.firstPartyDomain;
       }
 
       // The cookie API is magical -- we must recreate the URL from the domain and path.
@@ -671,6 +690,9 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
     import_settings(message.object).then(() => {
       sendResponse(true);
     });
+  } else if (message.type == "get_ruleset_timestamps") {
+    update.getRulesetTimestamps().then(timestamps => sendResponse(timestamps));
+    return true;
   }
 });
 
